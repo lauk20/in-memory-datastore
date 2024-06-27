@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
 )
 
 func main() {
+	fmt.Println("Listening on port 6379")
+
 	// start listening on port 6379
 	listener, err := net.Listen("tcp", ":6379")
 	if err != nil {
@@ -26,17 +27,14 @@ func main() {
 
 	// server listen loop
 	for {
-		// buffer of 1024 bytes
-		buffer := make([]byte, 1024)
-
-		// read data into buffer
-		_, err = connection.Read(buffer)
+		deserializer := NewDeserializer(connection)
+		value, err := deserializer.Read()
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Println("client sent invalid data: ", err.Error())
+			fmt.Println(err)
+			return
 		}
+
+		fmt.Println(value)
 
 		// respond with "+OK\r\n"
 		connection.Write([]byte("+OK\r\n"))

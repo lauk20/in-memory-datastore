@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strconv"
 )
@@ -44,10 +45,12 @@ func (d *Deserializer) readLine() (line []byte, n int, err error) {
 		}
 		n += 1
 		line = append(line, readByte)
+		// check for CRLF
 		if len(line) >= 2 && line[len(line)-2] == '\r' {
 			break
 		}
 	}
+	// return the line, removing the \r
 	return line[:len(line)-2], n, nil
 }
 
@@ -63,4 +66,73 @@ func (d *Deserializer) readInteger() (x int, n int, err error) {
 		return 0, n, err
 	}
 	return int(num), n, nil
+}
+
+func (d *Deserializer) readArray() (Value, error) {
+	// create Value data
+	v := Value{}
+	v.valueType = "array"
+
+	// get array length
+	length, _, err := d.readInteger()
+	if err != nil {
+		return v, err
+	}
+
+	// init array as Value field
+	v.array = make([]Value, 0)
+	for i := 0; i < length; i++ {
+		// read the Value in the array input
+		val, err := d.Read()
+		if err != nil {
+			return v, err
+		}
+
+		// append Value to array
+		v.array = append(v.array, val)
+	}
+
+	// return value
+	return v, nil
+}
+
+func (d *Deserializer) readBulk() (Value, error) {
+	// create Value Data
+	v := Value{}
+	v.valueType = "bulk"
+
+	// get bulk length
+	length, _, err := d.readInteger()
+	if err != nil {
+		return v, err
+	}
+
+	// create []byte for bulk
+	bulk := make([]byte, length)
+	// read the bulk string into bulk
+	d.reader.Read(bulk)
+	// consume the CRLF
+	d.readLine()
+
+	// assign bulk Value
+	v.bulk = string(bulk)
+
+	return v, nil
+}
+
+func (d *Deserializer) Read() (Value, error) {
+	inputType, err := d.reader.ReadByte()
+	if err != nil {
+		return Value{}, err
+	}
+
+	switch inputType {
+	case ARRAY:
+		return d.readArray()
+	case BULK:
+		return d.readBulk()
+	default:
+		fmt.Printf("Invalid type: %v", string(inputType))
+		return Value{}, nil
+	}
 }
