@@ -68,6 +68,8 @@ func (d *Deserializer) readInteger() (x int, n int, err error) {
 	return int(num), n, nil
 }
 
+// read array input
+// returns the Value
 func (d *Deserializer) readArray() (Value, error) {
 	// create Value data
 	v := Value{}
@@ -96,6 +98,8 @@ func (d *Deserializer) readArray() (Value, error) {
 	return v, nil
 }
 
+// read bulk strings
+// returns the Value structure
 func (d *Deserializer) readBulk() (Value, error) {
 	// create Value Data
 	v := Value{}
@@ -120,6 +124,8 @@ func (d *Deserializer) readBulk() (Value, error) {
 	return v, nil
 }
 
+// main Read function to read input
+// returns the Read value
 func (d *Deserializer) Read() (Value, error) {
 	inputType, err := d.reader.ReadByte()
 	if err != nil {
