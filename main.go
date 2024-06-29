@@ -28,15 +28,13 @@ func main() {
 	// server listen loop
 	for {
 		deserializer := NewDeserializer(connection)
-		value, err := deserializer.Read()
+		_, err := deserializer.Read()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		fmt.Println(value)
-
-		// respond with "+OK\r\n"
-		connection.Write([]byte("+OK\r\n"))
+		serializer := NewSerializer(connection)
+		serializer.Write(Value{valueType: "string", str: "OK"})
 	}
 }

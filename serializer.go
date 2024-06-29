@@ -30,9 +30,18 @@ type Deserializer struct {
 	reader *bufio.Reader
 }
 
-// create new Serializer
+type Serializer struct {
+	writer io.Writer
+}
+
+// create new Deserializer
 func NewDeserializer(reader io.Reader) *Deserializer {
 	return &Deserializer{reader: bufio.NewReader(reader)}
+}
+
+// create new Serializer
+func NewSerializer(writer io.Writer) *Serializer {
+	return &Serializer{writer: writer}
 }
 
 // read input line until CRLF
@@ -141,4 +150,91 @@ func (d *Deserializer) Read() (Value, error) {
 		fmt.Printf("Invalid type: %v", string(inputType))
 		return Value{}, nil
 	}
+}
+
+// serialize an Array value
+// return []byte after serialized
+func (v Value) serializeArray() []byte {
+	var result []byte
+	result = append(result, ARRAY)
+	result = append(result, strconv.Itoa(len(v.array))...)
+	result = append(result, '\r', '\n')
+
+	for i := 0; i < len(v.array); i++ {
+		result = append(result, v.array[i].Serialize()...)
+	}
+
+	return result
+}
+
+// serialize a Bulk value
+// return []byte after serialized
+func (v Value) serializeBulk() []byte {
+	var result []byte
+	result = append(result, BULK)
+	result = append(result, strconv.Itoa(len(v.bulk))...)
+	result = append(result, '\r', '\n')
+	result = append(result, v.bulk...)
+	result = append(result, '\r', '\n')
+
+	return result
+}
+
+// serialize a String value
+// return []byte after serialized
+func (v Value) serializeString() []byte {
+	var result []byte
+	result = append(result, STRING)
+	result = append(result, v.str...)
+	result = append(result, '\r', '\n')
+
+	return result
+}
+
+// serialize a Null value
+// return []byte after serialized
+func (v Value) serializeNull() []byte {
+	return []byte("$-1\r\n")
+}
+
+// serialize an Error value
+// return []byte after serialized
+func (v Value) serializeError() []byte {
+	var result []byte
+	result = append(result, ERROR)
+	result = append(result, v.str...)
+	result = append(result, '\r', '\n')
+
+	return result
+}
+
+// function to convert Value to serialized bytes array
+// returns serialized []byte
+func (v Value) Serialize() []byte {
+	switch v.valueType {
+	case "array":
+		return v.serializeArray()
+	case "bulk":
+		return v.serializeBulk()
+	case "string":
+		return v.serializeString()
+	case "null":
+		return v.serializeNull()
+	case "error":
+		return v.serializeError()
+	default:
+		return []byte{}
+	}
+}
+
+// Serialize and write a value using Serializer's writer
+// return error if not success
+func (s *Serializer) Write(v Value) error {
+	var result = v.Serialize()
+	_, err := s.writer.Write(result)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
