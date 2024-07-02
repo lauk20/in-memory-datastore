@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -28,13 +29,43 @@ func main() {
 	// server listen loop
 	for {
 		deserializer := NewDeserializer(connection)
-		_, err := deserializer.Read()
+		value, err := deserializer.Read()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
+		// requests should be of type array "set key 1" is an array
+		if value.valueType != "array" {
+			fmt.Println("Invalid request")
+			continue
+		}
+
+		// the request should not be empty
+		if len(value.array) == 0 {
+			fmt.Println("Invalid request")
+			continue
+		}
+
+		// case insensitive commands
+		command := strings.ToUpper(value.array[0].bulk)
+		// arguments
+		args := value.array[1:]
+
+		// get Serializer for this connection
 		serializer := NewSerializer(connection)
-		serializer.Write(Value{valueType: "string", str: "OK"})
+
+		// get the handler for this command
+		handlerFunction, found := handlers[command]
+		if !found {
+			fmt.Println("Invalid command", command)
+			serializer.Write(Value{valueType: "string", str: ""})
+			continue
+		}
+
+		// run handler with args
+		result := handlerFunction(args)
+		// respond with result
+		serializer.Write(result)
 	}
 }
