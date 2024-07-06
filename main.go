@@ -6,26 +6,8 @@ import (
 	"strings"
 )
 
-func main() {
-	fmt.Println("Listening on port 6379")
-
-	// start listening on port 6379
-	listener, err := net.Listen("tcp", ":6379")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// block for connection
-	connection, err := listener.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// close connection once function exits
-	defer connection.Close()
-
+// server event loop
+func serverLoop(connection net.Conn) {
 	// server listen loop
 	for {
 		deserializer := NewDeserializer(connection)
@@ -67,5 +49,32 @@ func main() {
 		result := handlerFunction(args)
 		// respond with result
 		serializer.Write(result)
+	}
+}
+
+func main() {
+	fmt.Println("Listening on port 6379")
+
+	// start listening on port 6379
+	listener, err := net.Listen("tcp", ":6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for {
+		fmt.Println("Listening...")
+		// block for connection
+		connection, err := listener.Accept()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		// close connection once function exits
+		defer connection.Close()
+
+		// start goroutine
+		go serverLoop(connection)
 	}
 }
