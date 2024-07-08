@@ -155,11 +155,10 @@ func (d *Deserializer) Read() (Value, error) {
 // serialize an Array value
 // return []byte after serialized
 func (v Value) serializeArray() []byte {
-	var result []byte
+	var result = []byte{}
 	result = append(result, ARRAY)
 	result = append(result, strconv.Itoa(len(v.array))...)
 	result = append(result, '\r', '\n')
-
 	for i := 0; i < len(v.array); i++ {
 		result = append(result, v.array[i].Serialize()...)
 	}
@@ -208,6 +207,17 @@ func (v Value) serializeError() []byte {
 	return result
 }
 
+// serializer an Integer value
+// return []byte after serialized
+func (v Value) serializeInteger() []byte {
+	var result []byte
+	result = append(result, INTEGER)
+	result = append(result, strconv.Itoa(v.num)...)
+	result = append(result, '\r', '\n')
+
+	return result
+}
+
 // function to convert Value to serialized bytes array
 // returns serialized []byte
 func (v Value) Serialize() []byte {
@@ -222,6 +232,8 @@ func (v Value) Serialize() []byte {
 		return v.serializeNull()
 	case "error":
 		return v.serializeError()
+	case "integer":
+		return v.serializeInteger()
 	default:
 		return []byte{}
 	}

@@ -8,9 +8,12 @@ import (
 
 // server event loop
 func serverLoop(connection net.Conn) {
+	deserializer := NewDeserializer(connection)
+	serializer := NewSerializer(connection)
+
+	server := Server{deserializer: deserializer, serializer: serializer}
 	// server listen loop
 	for {
-		deserializer := NewDeserializer(connection)
 		value, err := deserializer.Read()
 		if err != nil {
 			fmt.Println(err)
@@ -34,9 +37,6 @@ func serverLoop(connection net.Conn) {
 		// arguments
 		args := value.array[1:]
 
-		// get Serializer for this connection
-		serializer := NewSerializer(connection)
-
 		// get the handler for this command
 		handlerFunction, found := handlers[command]
 		if !found {
@@ -46,7 +46,7 @@ func serverLoop(connection net.Conn) {
 		}
 
 		// run handler with args
-		result := handlerFunction(args)
+		result := handlerFunction(args, &server)
 		// respond with result
 		serializer.Write(result)
 	}
