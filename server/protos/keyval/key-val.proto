@@ -1,0 +1,45 @@
+// protobuf for the key-val service
+// set and get key-value pairs in the datastore
+
+syntax = "proto3";
+
+option go_package = "in-memory-datastore/protos/keyval";
+
+package keyval;
+
+// interface for the KeyValue service
+service KeyValue {
+    // Gets the value using a key
+    // found in the Value is false if not found
+    rpc GetValue(Key) returns (Value) {}
+
+    // Set the value of key to value
+    // returns the Value if successful
+    rpc SetValue(KeyValuePair) returns (Value) {}
+}
+
+// A Key representing a string
+message Key {
+    // The Key string
+    string val = 1;
+}
+
+// A Value associated with a key
+//
+// If a feature could not be found, the val is empty and found is false.
+message Value {
+    // The value
+    string val = 1;
+
+    // Whether value is available/found or not
+    bool found = 2;
+}
+
+// A key-value pair representation
+message KeyValuePair {
+    // Key of the pair
+    Key key = 1;
+
+    // Value of the pair
+    Value value = 2;
+}
