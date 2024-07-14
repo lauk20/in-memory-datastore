@@ -1,0 +1,36 @@
+// protobuf for the pubsub service
+
+syntax = "proto3";
+
+option go_package = "in-memory-datastore/protos/pubsub";
+
+package pubsub;
+
+// interface for the KeyValue service
+service PubSub {
+    // Publish value
+    rpc Publish(Pub) returns (NumSubs) {}
+
+    // Subscribe
+    rpc Subscribe(String) returns (stream String) {}
+}
+
+// Message format for a Publish request
+message Pub {
+    // the topic to publish to
+    string topic = 1;
+    
+    // the message to publish
+    string msg = 2;
+}
+
+message NumSubs {
+    // the number of Subscribers
+    int32 value = 1;
+}
+
+// Message string
+message String {
+    // string value
+    string msg = 1;
+}

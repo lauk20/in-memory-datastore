@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	pb "datastore/protos/keyval"
+	pubsubpb "datastore/protos/pubsub"
 
 	"google.golang.org/grpc"
 )
@@ -50,10 +51,17 @@ func main() {
 	}
 
 	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterKeyValueServer(grpcServer, &keyValServer{sets: make(map[string]string)})
-	log.Printf("server listening at %v", listener.Addr())
-	if err := grpcServer.Serve(listener); err != nil {
+	kvServer := grpc.NewServer(opts...)
+	pb.RegisterKeyValueServer(kvServer, &keyValServer{sets: make(map[string]string)})
+	log.Printf("kvserver listening at %v", listener.Addr())
+	if err := kvServer.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
+	}
+
+	pubsubServer := grpc.NewServer(opts...)
+	pubsubpb.RegisterPubSubServer(pubsubServer, &PubSubServer{broker: NewBroker()})
+	log.Printf("pubsub listening at %v", listener.Addr())
+	if err := pubsubServer.Serve(listener); err != nil {
+		log.Fatalf("failed to server: %v", err)
 	}
 }

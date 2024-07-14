@@ -1,41 +1,62 @@
 package main
 
 import (
+	"context"
 	"sync"
+
+	pubsubpb "datastore/protos/pubsub"
 )
 
 // pub/sub message broker
 type Broker struct {
-	mutex       sync.RWMutex            // mutex protecting subscribers
-	subscribers map[string][]chan Value // subscribers to a specific topic, each with own channel
+	mutex       sync.RWMutex             // mutex protecting subscribers
+	subscribers map[string][]chan string // subscribers to a specific topic, each with own channel
 }
 
 // create a new Broker
 // returns a new *Broker
 func NewBroker() *Broker {
 	return &Broker{
-		subscribers: make(map[string][]chan Value),
+		subscribers: make(map[string][]chan string),
 	}
 }
 
-// publish message v Value to all channels under a single topic
-func (broker *Broker) Publish(topic string, v Value) {
-	broker.mutex.RLock()
-	defer broker.mutex.RUnlock()
+// Server for the pubsub service
+type PubSubServer struct {
+	pubsubpb.UnimplementedPubSubServer
 
-	for _, channel := range broker.subscribers[topic] {
-		channel <- v
-	}
+	// message broker
+	broker *Broker
 }
 
-// create new subscriber to a topic
-// creates a channel for the subscriber
-// returns the channel created
-func (broker *Broker) Subscribe(topic string) chan Value {
-	broker.mutex.RLock()
-	defer broker.mutex.RUnlock()
+// Publish to pubsub server
+func (s *PubSubServer) Publish(ctx context.Context, message *pubsubpb.Pub) (*pubsubpb.NumSubs, error) {
+	s.broker.mutex.RLock()
+	defer s.broker.mutex.RUnlock()
 
-	channel := make(chan Value)
-	broker.subscribers[topic] = append(broker.subscribers[topic], channel)
-	return channel
+	var count int32
+	count = 0
+	for _, channel := range s.broker.subscribers[message.Topic] {
+		channel <- message.Msg
+		count += 1
+	}
+
+	return &pubsubpb.NumSubs{Value: count}, nil
+}
+
+// Subscribe to pubsub server
+func (s *PubSubServer) Subscribe(topic *pubsubpb.String, stream pubsubpb.PubSub_SubscribeServer) error {
+	s.broker.mutex.RLock()
+	channel := make(chan string)
+	s.broker.subscribers[topic.Msg] = append(s.broker.subscribers[topic.Msg], channel)
+	s.broker.mutex.RUnlock()
+
+	for {
+		result := <-channel
+		if err := stream.Send(&pubsubpb.String{Msg: result}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
