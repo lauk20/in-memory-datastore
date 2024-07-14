@@ -51,17 +51,18 @@ func main() {
 	}
 
 	var opts []grpc.ServerOption
-	kvServer := grpc.NewServer(opts...)
-	pb.RegisterKeyValueServer(kvServer, &keyValServer{sets: make(map[string]string)})
-	log.Printf("kvserver listening at %v", listener.Addr())
-	if err := kvServer.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	Server := grpc.NewServer(opts...)
 
-	pubsubServer := grpc.NewServer(opts...)
-	pubsubpb.RegisterPubSubServer(pubsubServer, &PubSubServer{broker: NewBroker()})
+	// kv service
+	pb.RegisterKeyValueServer(Server, &keyValServer{sets: make(map[string]string)})
+	log.Printf("kvserver listening at %v", listener.Addr())
+
+	// pubsub service
+	pubsubpb.RegisterPubSubServer(Server, &PubSubServer{broker: NewBroker()})
 	log.Printf("pubsub listening at %v", listener.Addr())
-	if err := pubsubServer.Serve(listener); err != nil {
-		log.Fatalf("failed to server: %v", err)
+
+	// serve
+	if err := Server.Serve(listener); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }

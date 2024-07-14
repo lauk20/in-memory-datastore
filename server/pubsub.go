@@ -36,7 +36,11 @@ func (s *PubSubServer) Publish(ctx context.Context, message *pubsubpb.Pub) (*pub
 
 	var count int32
 	count = 0
-	for _, channel := range s.broker.subscribers[message.Topic] {
+	msgTopicSubs, found := s.broker.subscribers[message.Topic]
+	if !found {
+		return &pubsubpb.NumSubs{Value: count}, nil
+	}
+	for _, channel := range msgTopicSubs {
 		channel <- message.Msg
 		count += 1
 	}
